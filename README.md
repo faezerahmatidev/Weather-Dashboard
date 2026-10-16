@@ -3,6 +3,9 @@
 Dark-mode, frontend-only, multi-page weather dashboard built with **Angular 20**
 (standalone components, signals, lazy-loaded routes, Angular Router) + Leaflet.
 
+**Live demo:** https://faezerahmatidev.github.io/Weather-Dashboard/
+(deployed from `main` via the GitHub Pages workflow in `.github/workflows/`).
+
 ## Pages / routes
 
 - Dashboard — `/dashboard`
@@ -47,13 +50,17 @@ Chrome binary, which is not available in this environment.
 - Client-side rendering only — no SSR, no prerendering, no backend.
 
 ## Production notes
-
 - Initial bundle ≈ 311KB raw (≈ 85KB transfer); budget warnings at 600KB / error 1MB.
 - `ng build` emits a known warning that `leaflet` is not ESM. This is an upstream
   packaging fact (leaflet 1.9 ships CJS); it is intentionally left visible rather
   than suppressed, and the library is isolated in the lazy map chunk.
 - SPA fallback: any static host must rewrite unknown paths to `index.html` for
-  deep links (e.g. `/calendar`) to work on refresh.
+  deep links (e.g. `/calendar`) to work on refresh. On GitHub Pages this is
+  handled by shipping a copy of `index.html` as `404.html` (see the deploy
+  workflow) plus `--base-href=/Weather-Dashboard/.
+- Demo deployment: pushes to `main` trigger `.github/workflows/deploy.yml`
+  (lint → production build → GitHub Pages). Requires one-time repo setup:
+  Settings → Pages → Source: **GitHub Actions**.
 - Security headers (CSP, HSTS, framing, referrer) must be configured at the
   hosting/CDN layer — they cannot be enforced from inside the Angular bundle.
   The app itself renders no unsanitized HTML, embeds no secrets, and only contacts
