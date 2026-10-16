@@ -1,8 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TopbarComponent } from '../components/topbar';
-import { AppState, type Theme, type Units } from '../core/app-state';
-import { CITIES, getCity } from '../data/weather';
+import { AppState } from '../core/app-state';
+import { CITIES } from '../data/weather';
 
 @Component({
   selector: 'app-settings',
@@ -16,15 +16,15 @@ import { CITIES, getCity } from '../data/weather';
           <h3>Units</h3>
           <p class="muted small">Choose your preferred measurement units</p>
           <div class="seg" role="radiogroup" aria-label="Temperature units">
-            <button role="radio" [attr.aria-checked]="state.units() === 'C'" class="seg-btn" [class.active]="state.units() === 'C'" (click)="state.setUnits('C')">°C (Celsius)</button>
-            <button role="radio" [attr.aria-checked]="state.units() === 'F'" class="seg-btn" [class.active]="state.units() === 'F'" (click)="state.setUnits('F')">°F (Fahrenheit)</button>
+            <button role="radio" [attr.aria-checked]="state.units() === 'C'" class="seg-btn" [class.active]="state.units() === 'C'" (click)="state.setUnits('C')">&deg;C (Celsius)</button>
+            <button role="radio" [attr.aria-checked]="state.units() === 'F'" class="seg-btn" [class.active]="state.units() === 'F'" (click)="state.setUnits('F')">&deg;F (Fahrenheit)</button>
           </div>
         </section>
 
         <section class="card" aria-label="Location settings">
           <h3>Location</h3>
           <p class="muted small">Default location for weather data</p>
-          <div class="loc-current">{{ cityLabel() }}</div>
+          <div class="loc-current">{{ state.currentCity().label }}</div>
           <label class="fld">
             <span>Change location</span>
             <select [ngModel]="state.cityId()" (ngModelChange)="state.setCityId($event)" aria-label="Default city">
@@ -33,7 +33,7 @@ import { CITIES, getCity } from '../data/weather';
               }
             </select>
           </label>
-          <p class="muted small">Current: {{ cityName() }} — applied to Dashboard, Map and Calendar.</p>
+          <p class="muted small">Current: {{ state.currentCity().name }} - applied to Dashboard, Map and Calendar.</p>
         </section>
 
         <section class="card" aria-label="Appearance">
@@ -48,19 +48,19 @@ import { CITIES, getCity } from '../data/weather';
         <section class="card" aria-label="Notification preferences">
           <h3>Notifications</h3>
           <p class="muted small">Get alerts for weather changes</p>
-          <label class="toggle-row">
+          <div class="toggle-row">
             <span>Severe weather alerts</span>
             <button role="switch" [attr.aria-checked]="state.notifPrefs().severe" [attr.aria-label]="'Severe weather alerts'" class="switch" [class.on]="state.notifPrefs().severe" (click)="toggleNotif('severe')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
-          <label class="toggle-row">
+          </div>
+          <div class="toggle-row">
             <span>Daily forecast summary</span>
             <button role="switch" [attr.aria-checked]="state.notifPrefs().daily" [attr.aria-label]="'Daily forecast summary'" class="switch" [class.on]="state.notifPrefs().daily" (click)="toggleNotif('daily')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
-          <label class="toggle-row">
+          </div>
+          <div class="toggle-row">
             <span>Location-based alerts</span>
             <button role="switch" [attr.aria-checked]="state.notifPrefs().locationBased" [attr.aria-label]="'Location-based alerts'" class="switch" [class.on]="state.notifPrefs().locationBased" (click)="toggleNotif('locationBased')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
-          <p class="muted small">Demo only — no real push notifications are sent.</p>
+          </div>
+          <p class="muted small">Demo only ? no real push notifications are sent.</p>
         </section>
 
         <section class="card" aria-label="Language">
@@ -79,18 +79,18 @@ import { CITIES, getCity } from '../data/weather';
         <section class="card" aria-label="Privacy and data">
           <h3>Privacy &amp; Data</h3>
           <p class="muted small">Manage your data and privacy settings</p>
-          <label class="toggle-row">
+          <div class="toggle-row">
             <span>Share anonymous usage analytics</span>
             <button role="switch" [attr.aria-checked]="state.privacy().analytics" aria-label="Share anonymous usage analytics" class="switch" [class.on]="state.privacy().analytics" (click)="togglePrivacy('analytics')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
-          <label class="toggle-row">
+          </div>
+          <div class="toggle-row">
             <span>Allow location sharing</span>
             <button role="switch" [attr.aria-checked]="state.privacy().locationSharing" aria-label="Allow location sharing" class="switch" [class.on]="state.privacy().locationSharing" (click)="togglePrivacy('locationSharing')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
-          <label class="toggle-row">
+          </div>
+          <div class="toggle-row">
             <span>Personalized weather tips</span>
             <button role="switch" [attr.aria-checked]="state.privacy().personalizedTips" aria-label="Personalized weather tips" class="switch" [class.on]="state.privacy().personalizedTips" (click)="togglePrivacy('personalizedTips')"><span class="knob" aria-hidden="true"></span></button>
-          </label>
+          </div>
           <p class="muted small">Frontend-only: preferences stay in this browser. No backend account exists.</p>
         </section>
       </div>
@@ -105,13 +105,6 @@ export class SettingsComponent {
   state = inject(AppState);
   readonly cities = CITIES;
 
-  cityLabel(): string {
-    return getCity(this.state.cityId()).label;
-  }
-  cityName(): string {
-    return getCity(this.state.cityId()).name;
-  }
-
   toggleNotif(key: 'severe' | 'daily' | 'locationBased'): void {
     const p = this.state.notifPrefs();
     this.state.setNotifPrefs({ ...p, [key]: !p[key] });
@@ -121,12 +114,6 @@ export class SettingsComponent {
     const p = this.state.privacy();
     this.state.setPrivacy({ ...p, [key]: !p[key] });
   }
-
-  setTheme(t: Theme): void {
-    this.state.setTheme(t);
-  }
-  setUnits(u: Units): void {
-    this.state.setUnits(u);
-  }
 }
+
 

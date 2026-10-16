@@ -1,13 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TopbarComponent } from '../components/topbar';
+import { UiIconComponent } from '../shared/components/ui-icon/ui-icon';
 import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help';
 
 @Component({
   selector: 'app-help',
   standalone: true,
-  imports: [TopbarComponent, FormsModule, RouterLink],
+  imports: [TopbarComponent, FormsModule, RouterLink, UiIconComponent],
   template: `
     <div class="page">
       <app-topbar heading="Help Center" />
@@ -15,11 +16,11 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
         <h2>Help Center</h2>
         <p class="muted">Answers about forecasts, map layers, alerts and settings.</p>
         <div class="search-box full">
-          <svg width="17" height="17" class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <app-ui-icon name="search" [size]="17" class="search-ic" />
           <input
             [ngModel]="q()"
             (ngModelChange)="q.set($event)"
-            placeholder="Search for help articles…"
+            placeholder="Search for help articles..."
             aria-label="Search for help articles"
           />
         </div>
@@ -48,8 +49,8 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
           <h3>{{ catTitle() }} ({{ filtered().length }})</h3>
           @if (filtered().length === 0) {
             <div class="empty" role="status">
-              <strong>No results for “{{ q() }}”</strong>
-              <p class="muted">Try “location”, “map layers”, “units” or clear filters.</p>
+              <strong>No results for &quot;{{ q() }}&quot;</strong>
+              <p class="muted">Try &quot;location&quot;, &quot;map layers&quot;, &quot;units&quot; or clear filters.</p>
               <button class="btn sm" (click)="clear()">Clear search</button>
             </div>
           } @else {
@@ -58,7 +59,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
                 <li>
                   <button class="acc-head" [class.open]="open() === a.id" [attr.aria-expanded]="open() === a.id" (click)="open.set(open() === a.id ? null : a.id)">
                     <span>{{ a.title }}</span>
-                    <span aria-hidden="true" [class.rot]="open() === a.id">?</span>
+                    <app-ui-icon name="chevron-down" [size]="16" [class.rot]="open() === a.id" />
                   </button>
                   @if (open() === a.id) {
                     <p class="acc-body">{{ a.body }}</p>
@@ -75,7 +76,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
             <ul class="pop-list">
               @for (a of popular; track a.id) {
                 <li>
-                  <button (click)="goPopular(a.id)">{{ a.title }} <span aria-hidden="true">›</span></button>
+                  <button (click)="goPopular(a.id)">{{ a.title }} <app-ui-icon name="chevron-right" [size]="13" [stroke]="2.4" /></button>
                 </li>
               }
             </ul>
@@ -96,7 +97,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
                   <textarea [ngModel]="msg()" (ngModelChange)="msg.set($event)" name="msg" required rows="3"></textarea>
                 </label>
                 <button type="submit" class="btn primary sm">Contact Support</button>
-                <p class="muted small">Demo form — messages are not sent anywhere and no live chat exists.</p>
+                <p class="muted small">Demo form - messages are not sent anywhere and no live chat exists.</p>
               </form>
             } @else {
               <div class="sent" role="status">
@@ -105,7 +106,7 @@ import { HELP_ARTICLES, HELP_CATEGORIES, POPULAR_QUESTIONS } from '../data/help'
                 <button class="btn sm" (click)="reset()">Send another</button>
               </div>
             }
-            <a routerLink="/settings" class="muted small">Check Settings first — most answers are there.</a>
+            <a routerLink="/settings" class="muted small">Check Settings first - most answers are there.</a>
           </section>
         </div>
       </div>

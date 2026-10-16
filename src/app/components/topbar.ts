@@ -1,13 +1,14 @@
-import { Component, Input, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, Input, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AppState } from '../core/app-state';
+import { UiIconComponent } from '../shared/components/ui-icon/ui-icon';
 import { CITIES } from '../data/weather';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, UiIconComponent],
   template: `
     <header class="topbar">
       <div class="top-greet">
@@ -18,12 +19,13 @@ import { CITIES } from '../data/weather';
       <div class="top-actions">
         <div class="search-wrap">
           <div class="search-box">
-            <svg width="17" height="17" class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <app-ui-icon name="search" [size]="17" class="search-ic" />
             <input
               [(ngModel)]="q"
               (ngModelChange)="dropOpen.set(true)"
               (focus)="dropOpen.set(true)"
               (blur)="onBlur()"
+              (keydown.escape)="closeSearch()"
               placeholder="Search your location"
               aria-label="Search your location"
               role="combobox"
@@ -44,7 +46,7 @@ import { CITIES } from '../data/weather';
                     [class.current]="c.id === state.cityId()"
                     (mousedown)="pick(c.id)"
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    <app-ui-icon name="pin" [size]="15" />
                     <span>{{ c.label }}</span>
                     @if (c.id === state.cityId()) {
                       <span class="cur-dot" aria-label="Current location"></span>
@@ -63,24 +65,23 @@ import { CITIES } from '../data/weather';
           [title]="state.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
         >
           <span class="tt-opt" [class.on]="state.theme() === 'light'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <app-ui-icon name="sun" [size]="16" />
           </span>
           <span class="tt-opt" [class.on]="state.theme() === 'dark'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 13.5A8 8 0 1 1 10.5 4 6.5 6.5 0 0 0 20 13.5z"/></svg>
+            <app-ui-icon name="moon" [size]="16" />
           </span>
         </button>
 
-        <div class="avatar-wrap">
+        <div class="avatar-wrap" tabindex="-1" (focusout)="onWrapFocusOut($event)" (keydown.escape)="closeProfile()">
           <button
             class="avatar-btn"
             (click)="toggleProfile()"
-            (blur)="onProfBlur()"
             aria-haspopup="menu"
             [attr.aria-expanded]="profileOpen()"
             aria-label="Open profile menu"
           >
-            <img src="https://i.pravatar.cc/64?img=47" alt="Kajal profile" />
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            <img src="https://i.pravatar.cc/64?img=47" alt="Kajal profile" width="40" height="40" referrerpolicy="no-referrer" />
+            <app-ui-icon name="chevron-down" [size]="14" />
           </button>
           @if (profileOpen()) {
             <div class="profile-drop" role="menu" aria-label="Profile">
@@ -101,6 +102,7 @@ import { CITIES } from '../data/weather';
 })
 export class TopbarComponent {
   state = inject(AppState);
+  private host = inject(ElementRef<HTMLElement>);
   @Input() heading = '';
 
   readonly q = signal('');
@@ -109,7 +111,6 @@ export class TopbarComponent {
 
   readonly results = computed(() => {
     const needle = this.q().trim().toLowerCase();
-    void this.state.cityId();
     if (!needle) return [];
     return CITIES.filter((c) => c.label.toLowerCase().includes(needle)).slice(0, 6);
   });
@@ -136,7 +137,22 @@ export class TopbarComponent {
     setTimeout(() => this.dropOpen.set(false), 120);
   }
 
-  onProfBlur(): void {
-    setTimeout(() => this.profileOpen.set(false), 150);
+  closeSearch(): void {
+    this.dropOpen.set(false);
+  }
+
+  closeProfile(): void {
+    this.profileOpen.set(false);
+  }
+
+  /**
+   * Closes the profile menu only when focus truly leaves the menu container,
+   * so keyboard users can Tab through menu items without it closing early.
+   */
+  onWrapFocusOut(event: FocusEvent): void {
+    const next = event.relatedTarget as Node | null;
+    if (!next || !this.host.nativeElement.contains(next)) {
+      this.profileOpen.set(false);
+    }
   }
 }

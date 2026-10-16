@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { TopbarComponent } from '../components/topbar';
 import { WeatherIconComponent } from '../components/weather-icon';
-import { AppState } from '../core/app-state';
+import { UiIconComponent } from '../shared/components/ui-icon/ui-icon';
+import { TempPipe } from '../shared/pipes/temp.pipe';
 import { buildMonth, conditionLabel } from '../data/weather';
 
 const WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -33,16 +34,16 @@ export function fmtISO(iso: string): string {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [TopbarComponent, WeatherIconComponent],
+  imports: [TopbarComponent, WeatherIconComponent, UiIconComponent, TempPipe],
   template: `
     <div class="page">
       <app-topbar heading="Calendar" />
       <div class="cal-layout">
         <section class="card cal-card" aria-label="Monthly weather calendar">
           <div class="cal-head">
-            <button (click)="prev()" aria-label="Previous month" class="icon-btn">‹</button>
+            <button (click)="prev()" aria-label="Previous month" class="icon-btn"><app-ui-icon name="chevron-left" [size]="18" [stroke]="2.2" /></button>
             <h2 aria-live="polite">{{ monthName() }} {{ year() }}</h2>
-            <button (click)="next()" aria-label="Next month" class="icon-btn">›</button>
+            <button (click)="next()" aria-label="Next month" class="icon-btn"><app-ui-icon name="chevron-right" [size]="18" [stroke]="2.2" /></button>
           </div>
           <div class="cal-week" role="row">
             @for (w of week; track w) {
@@ -54,7 +55,7 @@ export function fmtISO(iso: string): string {
               <button
                 role="gridcell"
                 [attr.aria-selected]="c.dateISO === selected()"
-                [attr.aria-label]="c.dateISO + ' ' + label(c.condition) + ' ' + disp(c.maxC) + ' degrees max ' + disp(c.minC) + ' min'"
+                [attr.aria-label]="c.dateISO + ' ' + label(c.condition) + ' ' + (c.maxC | appTemp:'number') + ' degrees max ' + (c.minC | appTemp:'number') + ' min'"
                 class="cal-cell"
                 [class.out]="!c.inMonth"
                 [class.sel]="c.dateISO === selected()"
@@ -66,7 +67,7 @@ export function fmtISO(iso: string): string {
               >
                 <span class="cell-day">{{ c.dayNum }}</span>
                 <app-weather-icon [condition]="c.condition" [size]="20" />
-                <span class="cell-t">{{ disp(c.maxC) }}°/{{ disp(c.minC) }}°</span>
+                <span class="cell-t">{{ c.maxC | appTemp:'number' }}&deg;/{{ c.minC | appTemp:'number' }}&deg;</span>
               </button>
             }
           </div>
@@ -80,7 +81,7 @@ export function fmtISO(iso: string): string {
               <div class="day-top">
                 <app-weather-icon [condition]="a.condition" [size]="52" />
                 <div>
-                  <strong class="day-temp">{{ fmt(a.maxC) }}/{{ fmt(a.minC) }}</strong>
+                  <strong class="day-temp">{{ a.maxC | appTemp }}/{{ a.minC | appTemp }}</strong>
                   <div class="muted">{{ label(a.condition) }}</div>
                 </div>
               </div>
@@ -105,7 +106,7 @@ export function fmtISO(iso: string): string {
                   <app-weather-icon [condition]="e.condition" [size]="28" />
                   <span>
                     <strong>{{ e.title }}</strong>
-                    <span class="muted small block">{{ e.precip }}% chance · {{ e.windKmh }} km/h</span>
+                    <span class="muted small block">{{ e.precip }}% chance &middot; {{ e.windKmh }} km/h</span>
                   </span>
                 </div>
               }
@@ -117,7 +118,6 @@ export function fmtISO(iso: string): string {
   `,
 })
 export class CalendarComponent {
-  state = inject(AppState);
   readonly week = WEEK;
   readonly year = signal(new Date().getFullYear());
   readonly month = signal(new Date().getMonth());
@@ -182,12 +182,6 @@ export class CalendarComponent {
 
   label(c: Parameters<typeof conditionLabel>[0]): string {
     return conditionLabel(c);
-  }
-  fmt(c: number): string {
-    return this.state.formatTemp(c);
-  }
-  disp(c: number): number {
-    return this.state.toDisplayTemp(c);
   }
   fmtDate(iso: string): string {
     return fmtISO(iso);

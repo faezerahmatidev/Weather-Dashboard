@@ -1,6 +1,8 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
+  OnDestroy,
   ViewChild,
   computed,
   effect,
@@ -11,16 +13,18 @@ import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { TopbarComponent } from '../components/topbar';
 import { WeatherIconComponent } from '../components/weather-icon';
+import { UiIconComponent } from '../shared/components/ui-icon/ui-icon';
+import { TempPipe } from '../shared/pipes/temp.pipe';
 import { AppState } from '../core/app-state';
-import { CITIES, getCity, hourlyFor } from '../data/weather';
+import { CITIES, hourlyFor } from '../data/weather';
 
 type LayerKey = 'rain' | 'clouds' | 'wind' | 'temp';
 
 const LAYER_INFO: Record<LayerKey, string> = {
-  rain: 'Sample precipitation visualisation — not live radar.',
-  clouds: 'Sample cloud-cover visualisation — not live satellite.',
-  wind: 'Sample wind-field visualisation — not live observations.',
-  temp: 'Sample temperature heat visualisation — not live analysis.',
+  rain: 'Sample precipitation visualisation - not live radar.',
+  clouds: 'Sample cloud-cover visualisation - not live satellite.',
+  wind: 'Sample wind-field visualisation - not live observations.',
+  temp: 'Sample temperature heat visualisation - not live analysis.',
 };
 
 const LAYER_LABEL: Record<LayerKey, string> = {
@@ -41,15 +45,15 @@ function seededRand(seed: number): () => number {
 @Component({
   selector: 'app-weather-map',
   standalone: true,
-  imports: [TopbarComponent, WeatherIconComponent, FormsModule],
+  imports: [TopbarComponent, WeatherIconComponent, UiIconComponent, TempPipe, FormsModule],
   template: `
     <div class="page">
       <app-topbar heading="Weather Map" />
       <div class="map-layout">
         <section class="card map-card" aria-label="Interactive weather map">
-          <div class="layer-bar" role="tablist" aria-label="Map layers">
+          <div class="layer-bar" role="group" aria-label="Map layers">
             @for (l of layers; track l) {
-              <button role="tab" [attr.aria-selected]="layer() === l" class="layer-btn" [class.active]="layer() === l" (click)="layer.set(l)">
+              <button [attr.aria-pressed]="layer() === l" class="layer-btn" [class.active]="layer() === l" (click)="layer.set(l)">
                 {{ labels[l] }}
               </button>
             }
@@ -60,13 +64,13 @@ function seededRand(seed: number): () => number {
             @if (loading()) {
               <div class="map-loading" role="status" aria-live="polite">
                 <span class="spinner" aria-hidden="true"></span>
-                Loading map tiles…
+                Loading map tiles...
               </div>
             }
             <div class="map-controls">
-              <button (click)="zoom(1)" aria-label="Zoom in" class="map-btn">+</button>
-              <button (click)="zoom(-1)" aria-label="Zoom out" class="map-btn">-</button>
-              <button (click)="recenter()" aria-label="Return to selected location" class="map-btn">?</button>
+              <button (click)="zoom(1)" aria-label="Zoom in" class="map-btn"><app-ui-icon name="plus" [size]="16" [stroke]="2.2" /></button>
+              <button (click)="zoom(-1)" aria-label="Zoom out" class="map-btn"><app-ui-icon name="minus" [size]="16" [stroke]="2.2" /></button>
+              <button (click)="recenter()" aria-label="Return to selected location" class="map-btn"><app-ui-icon name="crosshair" [size]="16" /></button>
             </div>
             <div class="map-legend" aria-label="Layer legend">
               <strong>{{ labels[layer()] }}</strong>
@@ -91,11 +95,11 @@ function seededRand(seed: number): () => number {
               <div>
                 <app-weather-icon [condition]="city().condition" [size]="56" />
                 <div class="cond sm">{{ city().conditionLabel }}</div>
-                <div class="muted small">Feels like {{ fmt(city().feelsC) }}</div>
+                <div class="muted small">Feels like {{ city().feelsC | appTemp }}</div>
               </div>
               <div class="place-temp">
-                <strong>{{ fmt(city().tempC) }}</strong>
-                <span class="muted">/{{ fmt(city().minC) }}</span>
+                <strong>{{ city().tempC | appTemp }}</strong>
+                <span class="muted">/{{ city().minC | appTemp }}</span>
               </div>
             </div>
             <dl class="mini-stats">
@@ -109,10 +113,10 @@ function seededRand(seed: number): () => number {
             <h3>Next Hours</h3>
             <div class="hours-grid">
               @for (h of hours(); track h.time) {
-                <div class="hour-cell" tabindex="0" [attr.aria-label]="h.time + ' ' + fmt(h.tempC)">
+                <div class="hour-cell" tabindex="0" [attr.aria-label]="h.time + ' ' + (h.tempC | appTemp)">
                   <span class="muted small">{{ h.time }}</span>
                   <app-weather-icon [condition]="h.condition" [size]="30" />
-                  <strong>{{ fmt(h.tempC) }}</strong>
+                  <strong>{{ h.tempC | appTemp }}</strong>
                 </div>
               }
             </div>
@@ -122,7 +126,7 @@ function seededRand(seed: number): () => number {
     </div>
   `,
 })
-export class WeatherMapComponent {
+export class WeatherMapComponent implements AfterViewInit, OnDestroy {
   state = inject(AppState);
   readonly cities = CITIES;
   readonly layers: LayerKey[] = ['rain', 'clouds', 'wind', 'temp'];
@@ -131,7 +135,7 @@ export class WeatherMapComponent {
   readonly layer = signal<LayerKey>('rain');
   readonly loading = signal(true);
 
-  readonly city = computed(() => getCity(this.state.cityId()));
+  readonly city = this.state.currentCity;
   readonly hours = computed(() => hourlyFor(this.state.cityId()).slice(0, 4));
 
   @ViewChild('mapEl', { static: true }) mapEl!: ElementRef<HTMLDivElement>;
@@ -246,10 +250,6 @@ export class WeatherMapComponent {
   recenter(): void {
     const c = this.city();
     this.map?.flyTo([c.lat, c.lon], 9, { duration: 0.8 });
-  }
-
-  fmt(c: number): string {
-    return this.state.formatTemp(c);
   }
 }
 

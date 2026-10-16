@@ -1,4 +1,6 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
+import { getCity } from '../data/weather';
+import { DEFAULT_READ, NOTIFICATIONS } from '../data/notifications';
 
 export type Theme = 'dark' | 'light';
 export type Units = 'C' | 'F';
@@ -51,7 +53,13 @@ export class AppState {
   );
   readonly readMap = signal<Record<string, boolean>>(readJSON('wd-notif-read', {}));
 
-  readonly unitSymbol = computed(() => (this.units() === 'C' ? '°C' : '°F'));
+  /** Currently selected city — single source of truth for all pages. */
+  readonly currentCity = computed(() => getCity(this.cityId()));
+
+  /** Number of unread sample notifications (single source of truth). */
+  readonly unreadNotifications = computed(
+    () => NOTIFICATIONS.filter((n) => !this.isNotificationRead(n.id)).length,
+  );
 
   constructor() {
     effect(() => {
@@ -104,10 +112,26 @@ export class AppState {
       } catch {
         /* ignore */
       }
-      // reduced-motion class (set once + on change)
-      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-      document.documentElement.classList.toggle('reduce-motion', mq.matches);
     });
+    this.initReducedMotion();
+  }
+
+  /**
+   * Mirrors the OS reduced-motion preference onto <html>.
+   * Runs once (not inside a reactive effect) and follows live changes.
+   * CSR-only: this app has no SSR/prerendering by design.
+   */
+  private initReducedMotion(): void {
+    try {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const apply = (): void => {
+        document.documentElement.classList.toggle('reduce-motion', mq.matches);
+      };
+      apply();
+      mq.addEventListener('change', apply);
+    } catch {
+      /* ignore: non-browser or restricted environment */
+    }
   }
 
   setTheme(t: Theme): void {
@@ -154,6 +178,16 @@ export class AppState {
       });
       return next;
     });
+  }
+
+  /**
+   * Whether a notification counts as read. Ids absent from readMap fall back
+   * to the curated DEFAULT_READ set so the badge and the list page agree.
+   */
+  isNotificationRead(id: string): boolean {
+    const m = this.readMap();
+    if (id in m) return m[id] === true;
+    return DEFAULT_READ.has(id);
   }
 
   resetDefaults(): void {

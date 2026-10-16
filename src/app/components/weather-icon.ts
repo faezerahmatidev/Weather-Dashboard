@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { Condition } from '../data/weather';
 
@@ -15,6 +15,7 @@ let uidCounter = 0;
   selector: 'app-weather-icon',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="w-icon w-{{ condition }}" [style.width.px]="size" [style.height.px]="size" aria-hidden="true">
       @switch (condition) {
